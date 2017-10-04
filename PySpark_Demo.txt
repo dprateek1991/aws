@@ -1,0 +1,143 @@
+- Create tables on Hive/ Beeline
+
+Pull the driver dataset from https://github.com/hortonworks/tutorials/blob/hdp-2.5/driver_data.zip
+
+create table driver (
+driverid int,
+drivername string,
+ssn bigint,
+location string,
+certified string,
+wage_plan string)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+STORED AS TEXTFILE
+TBLPROPERTIES("skip.header.line.count"="1");
+
+create table timesheet (
+driverid int,
+week int,
+hours_logged int,
+miles_logged int)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+STORED AS TEXTFILE
+TBLPROPERTIES("skip.header.line.count"="1");
+
+Load data into Hive tables from HDFS
+
+load data inpath '/user/cloudera/drivers.csv' overwrite into table driver;
+load data inpath '/user/cloudera/timesheet.csv' overwrite into table timesheet;
+
+
+- Run a Hive query
+
+0: jdbc:hive2://quickstart:10000/default> SELECT d.driverId, d.drivername, t.total_hours, t.total_miles from driver d  
+. . . . . . . . . . . . . . . . . . . . > JOIN (SELECT driverId, sum(hours_logged)total_hours, sum(miles_logged)total_miles FROM timesheet GROUP BY driverId) t  
+. . . . . . . . . . . . . . . . . . . . > ON d.driverId = t.driverId;
++-------------+----------------------+----------------+----------------+--+
+| d.driverid  |     d.drivername     | t.total_hours  | t.total_miles  |
++-------------+----------------------+----------------+----------------+--+
+| 10          | George Vetticaden    | 3232           | 147150         |
+| 11          | Jamie Engesser       | 3642           | 179300         |
+| 12          | Paul Coddin          | 2639           | 135962         |
+| 13          | Joe Niemiec          | 2727           | 134126         |
+| 14          | Adis Cesir           | 2781           | 136624         |
+| 15          | Rohit Bakshi         | 2734           | 138750         |
+| 16          | Tom McCuch           | 2746           | 137205         |
+| 17          | Eric Mizell          | 2701           | 135992         |
+| 18          | Grant Liu            | 2654           | 137834         |
+| 19          | Ajay Singh           | 2738           | 137968         |
+| 20          | Chris Harris         | 2644           | 134564         |
+| 21          | Jeff Markham         | 2751           | 138719         |
+| 22          | Nadeem Asghar        | 2733           | 137550         |
+| 23          | Adam Diaz            | 2750           | 137980         |
+| 24          | Don Hilborn          | 2647           | 134461         |
+| 25          | Jean-Philippe Playe  | 2723           | 139180         |
+| 26          | Michael Aube         | 2730           | 137530         |
+| 27          | Mark Lochbihler      | 2771           | 137922         |
+| 28          | Olivier Renault      | 2723           | 137469         |
+| 29          | Teddy Choi           | 2760           | 138255         |
+| 30          | Dan Rice             | 2773           | 137473         |
+| 31          | Rommel Garcia        | 2704           | 137057         |
+| 32          | Ryan Templeton       | 2736           | 137422         |
+| 33          | Sridhara Sabbella    | 2759           | 139285         |
+| 34          | Frank Romano         | 2811           | 137728         |
+| 35          | Emil Siemes          | 2728           | 138727         |
+| 36          | Andrew Grande        | 2795           | 138025         |
+| 37          | Wes Floyd            | 2694           | 137223         |
+| 38          | Scott Shaw           | 2760           | 137464         |
+| 39          | David Kaiser         | 2745           | 138788         |
+| 40          | Nicolas Maillard     | 2700           | 136931         |
+| 41          | Greg Phillips        | 2723           | 138407         |
+| 42          | Randy Gelhausen      | 2697           | 136673         |
+| 43          | Dave Patton          | 2750           | 136993         |
++-------------+----------------------+----------------+----------------+--+
+34 rows selected (74.961 seconds)
+
+
+- Run same query using PySpark 
+
+from pyspark import SparkConf,SparkContext
+from pyspark.sql import SQLContext,HiveContext
+from pyspark.sql.types import *
+from pyspark.sql.window import Window
+from pyspark.sql.functions import *
+import json
+import logging
+import sys
+import datetime
+import os
+
+sqlContext=HiveContext(sc)
+
+sc.setLogLevel("ERROR")
+
+query1="use pyspark"
+
+df1=sqlContext.sql(query1)
+
+query2="""SELECT d.driverId, d.drivername, t.total_hours, t.total_miles from driver d  
+          JOIN (SELECT driverId, sum(hours_logged)total_hours, sum(miles_logged)total_miles FROM timesheet GROUP BY driverId) t  
+          ON d.driverId = t.driverId
+	    """
+		
+df2=sqlContext.sql(query2)
+
+df2.registerTempTable("df2")
+
+>>> df2.show()
++--------+-------------------+-----------+-----------+
+|driverId|         drivername|total_hours|total_miles|
++--------+-------------------+-----------+-----------+
+|      10|  George Vetticaden|       3232|     147150|
+|      11|     Jamie Engesser|       3642|     179300|
+|      12|        Paul Coddin|       2639|     135962|
+|      13|        Joe Niemiec|       2727|     134126|
+|      14|         Adis Cesir|       2781|     136624|
+|      15|       Rohit Bakshi|       2734|     138750|
+|      16|         Tom McCuch|       2746|     137205|
+|      17|        Eric Mizell|       2701|     135992|
+|      18|          Grant Liu|       2654|     137834|
+|      19|         Ajay Singh|       2738|     137968|
+|      20|       Chris Harris|       2644|     134564|
+|      21|       Jeff Markham|       2751|     138719|
+|      22|      Nadeem Asghar|       2733|     137550|
+|      23|          Adam Diaz|       2750|     137980|
+|      24|        Don Hilborn|       2647|     134461|
+|      25|Jean-Philippe Playe|       2723|     139180|
+|      26|       Michael Aube|       2730|     137530|
+|      27|    Mark Lochbihler|       2771|     137922|
+|      28|    Olivier Renault|       2723|     137469|
+|      29|         Teddy Choi|       2760|     138255|
++--------+-------------------+-----------+-----------+
+only showing top 20 rows
+
+df2.write.parquet("hdfs://quickstart.cloudera:8020/user/cloudera/pyspark",mode="overwrite")
+
+[cloudera@quickstart conf]$ hdfs dfs -ls /user/cloudera/pyspark
+Found 4 items
+-rw-r--r--   1 cloudera cloudera          0 2017-08-16 11:36 /user/cloudera/pyspark/_SUCCESS
+-rw-r--r--   1 cloudera cloudera        512 2017-08-16 11:36 /user/cloudera/pyspark/_common_metadata
+-rw-r--r--   1 cloudera cloudera       1012 2017-08-16 11:36 /user/cloudera/pyspark/_metadata
+-rw-r--r--   1 cloudera cloudera       1711 2017-08-16 11:36 /user/cloudera/pyspark/part-r-00000-f717a4c6-6a28-481e-97e4-3839ca3502a8.gz.parquet
