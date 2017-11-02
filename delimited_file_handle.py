@@ -11,7 +11,7 @@ import os
 
 def main(sc, SQLContext):
 
-    sqlContext = SQLContext(sc)
+        sqlContext = SQLContext(sc)
 
 	output_dir="s3n://output"
 	
