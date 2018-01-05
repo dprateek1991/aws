@@ -8,8 +8,8 @@
 import boto3
 from botocore.exceptions import ClientError
 
-SENDER = "prateekdubey12@gmail.com"
-RECIPIENT = "prateekdubey12@gmail.com"
+SENDER = "sender@gmail.com"
+RECIPIENT = "receiver@gmail.com"
 
 AWS_REGION = "us-east-1"
 
